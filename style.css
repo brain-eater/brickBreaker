@@ -1,0 +1,18 @@
+main {
+  width: 70vw;
+  height: 97vh;
+  border: 1px solid black;
+  margin: 0px auto;
+  position: relative;
+}
+
+.ball {
+  background-color: red;
+  border-radius: 100%;
+  position: absolute;
+}
+
+.paddle {
+  position: absolute;
+  background-color: green;
+}
