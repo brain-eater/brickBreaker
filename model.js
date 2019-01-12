@@ -15,10 +15,21 @@ class Paddle {
 }
 
 class Ball {
-  constructor(bottom, left, width, height) {
-    this.bottom = bottom;
+  constructor(top, left, radius) {
+    this.top = top;
     this.left = left;
-    this.width = width;
-    this.height = height;
+    this.radius = radius;
+  }
+}
+
+class Game {
+  constructor(xChange, yChange) {
+    this.xChange = xChange;
+    this.yChange = yChange;
+  }
+
+  moveBall(ball) {
+    ball.left += this.xChange;
+    ball.top += this.yChange;
   }
 }

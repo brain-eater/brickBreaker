@@ -2,16 +2,16 @@ const LEFT_ARROW = "ArrowLeft";
 const RIGHT_ARROW = "ArrowRight";
 
 const drawPaddle = function(paddle, paddleDiv) {
-  paddleDiv.style.bottom = addViewPortPrefix(paddle.bottom);
-  paddleDiv.style.left = addViewPortPrefix(paddle.left, "vw");
-  paddleDiv.style.width = addViewPortPrefix(paddle.width, "vw");
-  paddleDiv.style.height = addViewPortPrefix(paddle.height);
+  paddleDiv.style.bottom = addPrefix(paddle.bottom, "vh");
+  paddleDiv.style.left = addPrefix(paddle.left, "vw");
+  paddleDiv.style.width = addPrefix(paddle.width, "vw");
+  paddleDiv.style.height = addPrefix(paddle.height, "vh");
 };
 
 const getScreen = document => document.getElementById("screen");
 
-const addViewPortPrefix = function(vhValue, prefix = "vh") {
-  return vhValue + prefix;
+const addPrefix = function(value, prefix = "px") {
+  return value + prefix;
 };
 
 const handleEvents = function(paddle, paddleDiv) {
@@ -22,7 +22,6 @@ const handleEvents = function(paddle, paddleDiv) {
   if (event.key == RIGHT_ARROW) {
     paddle.moveRight();
   }
-
   drawPaddle(paddle, paddleDiv);
 };
 
@@ -37,10 +36,10 @@ const createPaddle = function(document, paddle) {
 };
 
 const drawBall = function(ball, ballDiv) {
-  ballDiv.style.bottom = addViewPortPrefix(ball.bottom);
-  ballDiv.style.left = addViewPortPrefix(ball.left, "vw");
-  ballDiv.style.width = addViewPortPrefix(ball.width, "vw");
-  ballDiv.style.height = addViewPortPrefix(ball.height);
+  ballDiv.style.top = addPrefix(ball.top, "vw");
+  ballDiv.style.left = addPrefix(ball.left, "vw");
+  ballDiv.style.width = addPrefix(ball.radius, "vw");
+  ballDiv.style.height = addPrefix(ball.radius, "vw");
 };
 
 const createBall = function(document, ball) {
@@ -56,8 +55,13 @@ const createBall = function(document, ball) {
 const intialize = function() {
   let paddle = new Paddle(3, 30, 12, 3);
   let paddleDiv = createPaddle(document, paddle);
-  let ball = new Ball(7, 10, 4, 7);
+  let ball = new Ball(7, 10, 3.5);
   let ballDiv = createBall(document, ball);
+  let game = new Game(0.08, 0.08);
+  setInterval(function() {
+    game.moveBall(ball);
+    drawBall(ball, ballDiv);
+  }, 10);
   let screen = getScreen(document);
   screen.focus();
   screen.onkeydown = handleEvents.bind(null, paddle, paddleDiv);
