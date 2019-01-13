@@ -25,6 +25,25 @@ const handleEvents = function(paddle, paddleDiv) {
   drawPaddle(paddle, paddleDiv);
 };
 
+const drawWall = function(wall, wallDiv) {
+  console.log(wall);
+
+  wallDiv.style.top = addPrefix(wall.top, "vw");
+  wallDiv.style.left = addPrefix(wall.left, "vw");
+  wallDiv.style.width = addPrefix(wall.breadth, "vw");
+  wallDiv.style.height = addPrefix(wall.length, "vh");
+};
+
+const createWall = function(document, wall, id) {
+  let screen = getScreen(document);
+  let wallDiv = document.createElement("div");
+  wallDiv.id = id;
+  wallDiv.className = "wall";
+  screen.appendChild(wallDiv);
+  drawWall(wall, wallDiv);
+  return wallDiv;
+};
+
 const createPaddle = function(document, paddle) {
   let screen = getScreen(document);
   let paddleDiv = document.createElement("div");
@@ -52,16 +71,23 @@ const createBall = function(document, ball) {
   return ballDiv;
 };
 
-const intialize = function() {
+const createGameComponents = function(document) {
   let paddle = new Paddle(3, 30, 12, 3);
   let paddleDiv = createPaddle(document, paddle);
   let ball = new Ball(7, 10, 3.5);
   let ballDiv = createBall(document, ball);
-  let game = new Game(0.08, 0.08);
-  setInterval(function() {
-    game.moveBall(ball);
-    drawBall(ball, ballDiv);
-  }, 10);
+  let screen = getScreen(document);
+  let wall = new Wall(0, 0, 97, 1);
+  let wallDiv = createWall(document, wall, "left_wall");
+  let game = new Game(30, 0.08);
+  return { paddle, paddleDiv, ball, ballDiv, game };
+};
+
+const intialize = function() {
+  let { paddle, paddleDiv, ball, ballDiv, game } = createGameComponents(
+    document
+  );
+  game.pointToDirection(ball, drawBall.bind(null, ball, ballDiv));
   let screen = getScreen(document);
   screen.focus();
   screen.onkeydown = handleEvents.bind(null, paddle, paddleDiv);
