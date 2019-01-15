@@ -18,10 +18,11 @@ main {
   border: 1px solid black;
   position: absolute;
   background-color: green;
+  border-radius: 2vh;
 }
 
 .wall {
-  border: 1px solid black;
+  border: 1px solid brown;
   position: absolute;
   background-color: brown;
 }

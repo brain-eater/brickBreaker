@@ -1,40 +1,73 @@
 const isInVerticalRange = function(block1, block2) {
-  let isLeft = block1.rightEdge <= block2.left;
+  let isLeft = block1.rightEdge >= block2.left;
   let isRight = block1.left <= block2.rightEdge;
   return isLeft && isRight;
 };
 
+const isInHorizantalRange = function(block1, block2) {
+  let isTop = block1.bottomEdge >= block2.top;
+  let isBottom = block1.top <= block2.bottomEdge;
+  return isTop && isBottom;
+};
+
+const isTouchingTop = function(component1, component2) {
+  return component1.bottomEdge.toFixed() == component2.top.toFixed();
+};
+
+const isTouchingBottom = function(component1, component2) {
+  return component1.top.toFixed() == component2.bottomEdge.toFixed();
+};
+
+const isTouchingLeft = function(component1, component2) {
+  return component1.left.toFixed() == component2.rightEdge.toFixed();
+};
+
+const isTouchingRight = function(component1, component2) {
+  return component1.rightEdge.toFixed() == component2.left.toFixed();
+};
+
 class Paddle {
-  constructor(bottom, left, width, height) {
-    this.bottom = bottom;
+  constructor(top, left, width, height) {
+    this.top = top;
     this.left = left;
     this.width = width;
     this.height = height;
   }
-  moveLeft() {
-    this.left = this.left - 10;
+  moveLeft(maxLeft) {
+    this.left = Math.max(this.left - 2, maxLeft);
   }
 
-  moveRight() {
-    this.left = this.left + 10;
+  moveRight(maxRight) {
+    this.left = Math.min(this.left + 2, maxRight - this.width);
   }
 
-  isTouching(ball) {
-    return;
+  get dimensions() {
+    let { top, left, height, width } = this;
+    let rightEdge = left + width;
+    let bottomEdge = top + height;
+    return { top, left, rightEdge, bottomEdge };
+  }
+
+  isTouching(ballDimensions) {
+    return (
+      isInVerticalRange(this.dimensions, ballDimensions) &&
+      this.top == Math.ceil(ballDimensions.bottomEdge)
+    );
   }
 }
 
 class Ball {
-  constructor(top, left, diameter) {
+  constructor(top, left, height, width) {
     this.top = top;
     this.left = left;
-    this.diameter = diameter;
+    this.height = height;
+    this.width = width;
   }
 
   get dimensions() {
-    let { top, left, diameter } = this;
-    let rightEdge = left + diameter;
-    let bottomEdge = top + diameter;
+    let { top, left, height, width } = this;
+    let rightEdge = left + height;
+    let bottomEdge = top + width;
     return { top, left, rightEdge, bottomEdge };
   }
 }
@@ -73,49 +106,85 @@ const getCordinatesDiff = function(displacement, direction) {
 };
 
 class Game {
-  constructor(ballDirection, ballSpeed, paddle, ball, walls) {
-    this.ballDirection = ballDirection;
-    this.ballSpeed = ballSpeed;
-    this.paddle = paddle;
-    this.ball = ball;
-    this.walls = walls;
+  constructor(ballConfig, components, screenDimensions) {
+    this.ballConfig = ballConfig;
+    this.components = components;
+    this.screenDimensions = screenDimensions;
+  }
+
+  movePaddle(direction) {
+    let directions = {
+      left: this.components.paddle.moveLeft.bind(this.components.paddle, 1),
+      right: this.components.paddle.moveRight.bind(this.components.paddle, 70)
+    };
+    directions[direction] && directions[direction]();
   }
 
   moveBall() {
-    let coordinatesChange = getCordinatesDiff(
-      this.ballSpeed,
-      this.ballDirection
-    );
+    let { ballSpeed, ballDirection } = this.ballConfig;
+    let { ball } = this.components;
+    let coordinatesChange = getCordinatesDiff(ballSpeed, ballDirection);
 
-    this.ball.left += coordinatesChange.xChange;
-    this.ball.top += coordinatesChange.yChange;
+    ball.left += coordinatesChange.xChange;
+    ball.top += coordinatesChange.yChange;
   }
 
   bounceBall() {
-    this.ballDirection = this.ballDirection + 90;
-    this.ballDirection %= 360;
+    let { ballDirection } = this.ballConfig;
+    ballDirection = ballDirection + 90;
+    ballDirection %= 360;
+    this.ballConfig.ballDirection = ballDirection;
+  }
+
+  isTouching(component1, component2) {
+    let insideHorizantalRange = isInHorizantalRange(component1, component2);
+    let insideVerticalRange = isInVerticalRange(component1, component2);
+    let touchingTop = isTouchingTop(component1, component2);
+    let touchingBottom = isTouchingBottom(component1, component2);
+    let touchingLeft = isTouchingLeft(component1, component2);
+    let touchingRight = isTouchingRight(component1, component2);
+    if (insideHorizantalRange && (touchingLeft || touchingRight)) {
+      return true;
+    }
+    if (insideVerticalRange && (touchingTop || touchingBottom)) {
+      return true;
+    }
+    return false;
   }
 
   shoot(callback) {
     let lastTimeTouched = false;
-
-    setInterval(
-      function() {
-        console.log(this.paddle.isTouching(this.ball));
-        let isTouchingWall = wall => wall.isTouching(this.ball);
-        let touchingWall = this.walls.filter(isTouchingWall)[0];
-        if (touchingWall && !lastTimeTouched) {
-          this.bounceBall();
+    let { ball, paddle, walls } = this.components;
+    let isTouchingWall = wall =>
+      this.isTouching(ball.dimensions, wall.dimensions);
+    let self = this;
+    setInterval(function() {
+      let isBallTouchingPaddle = self.isTouching(
+        ball.dimensions,
+        paddle.dimensions
+      );
+      let touchingWall = walls.filter(isTouchingWall)[0];
+      if (!lastTimeTouched) {
+        if (isBallTouchingPaddle || touchingWall) {
+          self.bounceBall();
           lastTimeTouched = true;
         }
-        if (!touchingWall) {
-          lastTimeTouched = false;
-        }
-        this.moveBall(this.ball);
-        callback();
-      }.bind(this),
-      7
-    );
+      }
+      if (!touchingWall && !isBallTouchingPaddle) {
+        lastTimeTouched = false;
+      }
+      self.moveBall(ball);
+      callback();
+    }, 7);
+  }
+}
+
+class Brick {
+  constructor(top, left, height, breadth) {
+    this.top = top;
+    this.left = left;
+    this.height = height;
+    this.breadth = breadth;
   }
 }
 
@@ -126,18 +195,11 @@ class Wall {
     this.height = height;
     this.breadth = breadth;
     this.screenSide = screenSide;
-    this.rightEdge = left + breadth;
-    this.bottomEdge = top + height;
   }
-  isTouching(ball) {
-    let ballDimensions = ball.dimensions;
-    let touchingSides = {
-      right: this.left <= ballDimensions.rightEdge,
-      left: this.rightEdge >= ballDimensions.left,
-      top: this.bottomEdge >= ballDimensions.top,
-      bottom: this.top <= ballDimensions.bottomEdge
-    };
-
-    return touchingSides[this.screenSide];
+  get dimensions() {
+    let { top, left } = this;
+    let rightEdge = left + this.breadth;
+    let bottomEdge = top + this.height;
+    return { top, left, rightEdge, bottomEdge };
   }
 }
